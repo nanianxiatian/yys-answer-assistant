@@ -1,10 +1,10 @@
 # 阴阳师答题助手
 
-一个基于Python和PaddleOCR的本地OCR答题助手，支持导入Excel题库，自动识别游戏题目并匹配答案。
+一个基于Python和RapidOCR的本地OCR答题助手，支持导入Excel题库，自动识别游戏题目并匹配答案。
 
 ## 功能特点
 
-- **本地OCR识别**：使用PaddleOCR，无需API调用，完全本地运行
+- **本地OCR识别**：使用RapidOCR，轻量级、易打包，无需API调用，完全本地运行
 - **区域选择**：可视化选择游戏画面中的识别区域
 - **Excel题库支持**：支持.xlsx格式题库，自动识别问题/答案列
 - **智能模糊匹配**：使用多种算法匹配题目，返回最可能的答案
@@ -17,7 +17,7 @@
 pip install -r requirements.txt
 ```
 
-**注意**：第一次运行时会自动下载PaddleOCR模型文件（约100MB），请确保网络连接。
+**注意**：第一次运行时会自动下载RapidOCR模型文件（约30MB），请确保网络连接。
 
 ## 题库存储
 
@@ -39,16 +39,6 @@ pip install -r requirements.txt
 ### 数据备份
 
 使用界面的 **"导出题库"** 按钮，可以将 SQLite 中的题库导出为 Excel 备份。
-
-### 迁移旧数据
-
-如果有旧版的 Excel 题库，使用迁移工具：
-
-```bash
-python migrate_to_sqlite.py
-# 或指定文件
-python migrate_to_sqlite.py questions.xlsx
-```
 
 ### 数据库文件
 
@@ -113,7 +103,7 @@ python main.py
 ## 文件说明
 
 - `main.py` - 主程序入口和GUI界面
-- `ocr_engine.py` - OCR引擎（PaddleOCR封装）
+- `ocr_engine.py` - OCR引擎（RapidOCR封装）
 - `question_matcher.py` - 题目匹配算法
 - `question_bank_loader.py` - Excel题库加载器
 - `screen_capture.py` - 屏幕截图和区域选择
@@ -121,8 +111,7 @@ python main.py
 
 ## 依赖库
 
-- paddlepaddle - 深度学习框架
-- paddleocr - OCR识别引擎
+- rapidocr-onnxruntime - 轻量级OCR识别引擎（ONNX Runtime）
 - openpyxl - Excel文件读写
 - pillow - 图像处理
 - pyautogui - 屏幕截图
@@ -138,7 +127,7 @@ python main.py
 
 ### v1.0
 - 初始版本
-- 支持PaddleOCR本地识别
+- 支持RapidOCR本地识别（轻量级、易打包）
 - 支持Excel题库导入
 - 支持区域选择和定时识别
 - 支持模糊匹配算法

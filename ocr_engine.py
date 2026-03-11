@@ -7,9 +7,37 @@ import numpy as np
 from PIL import Image
 import logging
 import threading
+import os
+import sys
 
 # 禁用冗余日志
 logging.getLogger("rapidocr").setLevel(logging.ERROR)
+
+
+def get_model_path():
+    """获取模型文件路径（支持打包后的程序）"""
+    # 如果是 PyInstaller 打包的程序
+    if hasattr(sys, '_MEIPASS'):
+        # 在打包后的程序中，资源在 _internal/rapidocr_onnxruntime 下
+        base_path = sys._MEIPASS
+    else:
+        # 在开发环境中
+        import rapidocr_onnxruntime
+        base_path = os.path.dirname(rapidocr_onnxruntime.__file__)
+    
+    models_dir = os.path.join(base_path, 'rapidocr_onnxruntime', 'models')
+    
+    # 检查模型文件是否存在
+    det_model = os.path.join(models_dir, 'ch_PP-OCRv4_det_infer.onnx')
+    rec_model = os.path.join(models_dir, 'ch_PP-OCRv4_rec_infer.onnx')
+    cls_model = os.path.join(models_dir, 'ch_ppocr_mobile_v2.0_cls_infer.onnx')
+    
+    # 如果打包后的路径不存在，尝试原始路径
+    if not os.path.exists(det_model):
+        # 直接使用 None，让 RapidOCR 自动处理
+        return None, None, None
+    
+    return det_model, rec_model, cls_model
 
 
 class OCREngine:
@@ -23,12 +51,22 @@ class OCREngine:
             from rapidocr_onnxruntime import RapidOCR
             
             print("[OCR] 正在初始化 RapidOCR...")
-            # 使用轻量级模型
+            
+            # 获取模型路径
+            det_path, rec_path, cls_path = get_model_path()
+            
+            # 初始化 RapidOCR
             self.ocr = RapidOCR(
-                det_model_path=None,  # 使用默认模型
-                cls_model_path=None,
-                rec_model_path=None,
+                det_model_path=det_path,
+                cls_model_path=cls_path,
+                rec_model_path=rec_path,
             )
+            
+            if det_path:
+                print("[OCR] 使用本地模型文件")
+            else:
+                print("[OCR] 使用默认模型配置")
+            
             print("[OCR] RapidOCR 初始化成功")
             
         except Exception as e:

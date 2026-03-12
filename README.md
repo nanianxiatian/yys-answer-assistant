@@ -11,6 +11,13 @@
 - **定时识别**：可设置识别间隔，自动监控题目变化
 - **纯识别无操作**：只做文字识别，不做任何点击操作，安全可靠
 
+## 下载地址
+
+- **Gitee 发行版**: https://gitee.com/nanianxiatianxy/yys-answer-assistant/releases/tag/v1.0.0
+- **GitHub Release**: https://github.com/nanianxiatian/yys-answer-assistant/releases/tag/v1.0.0
+
+> 由于文件较大（约161MB），已分割为两个分卷上传，下载后请运行 `merge.bat` 自动合并。
+
 ## 安装依赖
 
 ```bash

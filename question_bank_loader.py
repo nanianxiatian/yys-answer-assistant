@@ -40,27 +40,80 @@ class QuestionBankLoader:
             conn = self._get_connection()
             cursor = conn.cursor()
             
-            # 创建题目表
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS questions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    question TEXT NOT NULL UNIQUE,
-                    answer TEXT,
-                    source_file TEXT,
-                    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
+            # 检查是否是旧版本表结构（只有question有UNIQUE约束）
+            cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='questions'")
+            result = cursor.fetchone()
             
-            # 创建索引加速查询
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_question ON questions(question)
-            """)
+            if result and 'UNIQUE' in result[0] and 'question TEXT NOT NULL UNIQUE' in result[0]:
+                # 旧版本表，需要迁移
+                print("[数据库] 检测到旧版本表结构，正在迁移...")
+                self._migrate_to_composite_unique(conn, cursor)
+            else:
+                # 创建新表（使用题目+答案联合唯一约束）
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS questions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        question TEXT NOT NULL,
+                        answer TEXT,
+                        source_file TEXT,
+                        create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(question, answer)
+                    )
+                """)
+                
+                # 创建索引加速查询
+                cursor.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_question ON questions(question)
+                """)
             
             conn.commit()
             conn.close()
             print(f"[数据库] 已初始化: {self.db_path}")
         except Exception as e:
             print(f"[数据库] 初始化失败: {e}")
+    
+    def _migrate_to_composite_unique(self, conn, cursor):
+        """迁移旧表结构到新的联合唯一约束"""
+        try:
+            # 1. 获取所有现有数据
+            cursor.execute("SELECT question, answer, source_file, create_time FROM questions")
+            existing_data = cursor.fetchall()
+            
+            # 2. 删除旧表
+            cursor.execute("DROP TABLE questions")
+            
+            # 3. 创建新表（使用题目+答案联合唯一约束）
+            cursor.execute("""
+                CREATE TABLE questions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    question TEXT NOT NULL,
+                    answer TEXT,
+                    source_file TEXT,
+                    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(question, answer)
+                )
+            """)
+            
+            # 4. 创建索引
+            cursor.execute("CREATE INDEX idx_question ON questions(question)")
+            
+            # 5. 插入数据（题目+答案组合重复的会被自动去重）
+            inserted = 0
+            skipped = 0
+            for row in existing_data:
+                question, answer, source_file, create_time = row
+                try:
+                    cursor.execute("""
+                        INSERT INTO questions (question, answer, source_file, create_time)
+                        VALUES (?, ?, ?, ?)
+                    """, (question, answer, source_file, create_time))
+                    inserted += 1
+                except sqlite3.IntegrityError:
+                    skipped += 1
+            
+            print(f"[数据库] 迁移完成: 导入 {inserted} 条，跳过重复 {skipped} 条")
+        except Exception as e:
+            print(f"[数据库] 迁移失败: {e}")
     
     def _load_config(self):
         """加载配置文件"""
@@ -287,7 +340,7 @@ class QuestionBankLoader:
     
     def add_question(self, question, answer, source_file=None):
         """
-        添加新题目
+        添加新题目（题目+答案组合唯一）
         
         Args:
             question: 问题
@@ -295,7 +348,7 @@ class QuestionBankLoader:
             source_file: 来源文件（可选）
             
         Returns:
-            bool: 是否成功添加（False表示重复）
+            bool: 是否成功添加（False表示题目+答案组合已存在）
         """
         question = question.strip()
         answer = answer.strip()
@@ -313,6 +366,7 @@ class QuestionBankLoader:
             conn.close()
             return True
         except sqlite3.IntegrityError:
+            # 题目+答案组合已存在
             return False
         except Exception as e:
             print(f"添加题目失败: {e}")

@@ -46,6 +46,21 @@ class YYSAssistantGUI:
         # 绑定关闭事件
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
         
+        # 初始化日志文件
+        import datetime
+        import os
+        
+        # 创建log目录（如果不存在）
+        self.log_dir = "log"
+        if not os.path.exists(self.log_dir):
+            os.makedirs(self.log_dir)
+        
+        # 日志文件路径放在log目录下
+        log_filename = f"yys_assistant_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+        self.log_file = os.path.join(self.log_dir, log_filename)
+        with open(self.log_file, 'w', encoding='utf-8') as f:
+            f.write(f"=== 阴阳师答题助手日志 {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===\n\n")
+        
         # 创建界面
         self._create_widgets()
         self._init_components()
@@ -416,12 +431,22 @@ class YYSAssistantGUI:
             self._log(f"题库恢复失败: {e}", error=True)
     
     def _log(self, message, error=False):
-        """添加日志"""
+        """添加日志（同时写入文件）"""
         import datetime
         timestamp = datetime.datetime.now().strftime("%H:%M:%S")
         prefix = "[错误]" if error else "[信息]"
-        self.log_text.insert(tk.END, f"{timestamp} {prefix} {message}\n")
-        self.log_text.see(tk.END)
+        log_line = f"{timestamp} {prefix} {message}\n"
+        
+        # 写入GUI（可选，如果想要在GUI显示就保留）
+        # self.log_text.insert(tk.END, log_line)
+        # self.log_text.see(tk.END)
+        
+        # 写入文件
+        try:
+            with open(self.log_file, 'a', encoding='utf-8') as f:
+                f.write(log_line)
+        except Exception:
+            pass  # 如果写入失败也不影响程序运行
     
     def _browse_file(self):
         """浏览文件"""

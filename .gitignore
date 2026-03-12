@@ -50,6 +50,9 @@ Thumbs.db
 debug_capture.png
 ~$*.xlsx
 
+# Log directory
+log/
+
 # Build artifacts
 build/
 dist/*.exe
